@@ -1,0 +1,25 @@
+{
+  "name": "feecontract",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/charonAMM/feeContract.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/charonAMM/feeContract/issues"
+  },
+  "homepage": "https://github.com/charonAMM/feeContract#readme",
+  "devDependencies": {
+    "hardhat": "^2.12.0"
+  }
+}
