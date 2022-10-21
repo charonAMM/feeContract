@@ -21,17 +21,15 @@ contract Oracle is UsingTellor{
      * @param _depositId depositId of the specific deposit
      */
     function getCommitment(uint256 _chain, uint256 _depositId) public view returns(bytes memory _value){
-        bool _didGet;
         bytes32 _queryId = keccak256(abi.encode("Charon",abi.encode(_chain,_depositId)));
-        (_didGet,_value,) = getDataBefore(_queryId,block.timestamp - 12 hours);
-        require(_didGet);
+        (_value,) = getDataBefore(_queryId,block.timestamp - 12 hours);
+        require(_value.length > 2);
     }
 
     function getRootHashAndSupply(uint256 _timestamp) public view returns(bytes memory _value){
-        bool _didGet;
         bytes32 _queryId = keccak256(abi.encode("CITInfo",abi.encode(_timestamp)));
-        (_didGet,_value,) = getDataBefore(_queryId,block.timestamp - 12 hours);
-        require(_didGet);
+        (_value,) = getDataBefore(_queryId,block.timestamp - 12 hours);
+        require(_value.length > 2);
     }
 
 

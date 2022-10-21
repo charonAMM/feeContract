@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.4;
+pragma solidity 0.8.17;
 
 import "./interfaces/IOracle.sol";
 import "./interfaces/ICharon.sol";
@@ -57,6 +57,8 @@ contract CFC is MerkleTree{
         require(block.timestamp > _f.endDate, "round should be over");
         bytes memory _val = oracle.getRootHashAndSupply(_f.endDate);
         (bytes32 _rootHash, uint256 _totalSupply) = abi.decode(_val,(bytes32,uint256));
+        _f.rootHash = _rootHash;
+        _f.totalSupply = _totalSupply;
         uint256 _endDate = block.timestamp + 30 days;
         feePeriods.push(_endDate);
         feePeriodByTimestamp[_endDate].endDate = _endDate;
@@ -92,7 +94,8 @@ contract CFC is MerkleTree{
     }
 
     function claimRewards(uint256 _timestamp, address _account, uint256 _balance, bytes32[] calldata _hashes, bool[] calldata _right) external{
-        bytes32 _rootHash = feePeriodByTimestamp[_timestamp].rootHash;
+        FeePeriod storage _f = feePeriodByTimestamp[_timestamp];
+        bytes32 _rootHash = _f.rootHash;
         bytes32 _myHash = keccak256(abi.encode(_account,_balance));
         if (_hashes.length == 1) {
             require(_hashes[0] == _myHash);
@@ -100,7 +103,8 @@ contract CFC is MerkleTree{
             require(_hashes[0] == _myHash || _hashes[1] == _myHash);
         }
         require(InTree(_rootHash, _hashes, _right));
-        //loop through both tokens and transfer based on share
+        require(token.transfer(_account, _f.baseTokenRewardsPerToken * _balance));
+        require(chd.transfer(_account, _f.chdRewardsPerToken * _balance));
     }
 
 }
