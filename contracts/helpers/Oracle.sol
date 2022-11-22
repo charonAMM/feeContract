@@ -23,13 +23,11 @@ contract Oracle is UsingTellor{
     function getCommitment(uint256 _chain, uint256 _depositId) public view returns(bytes memory _value){
         bytes32 _queryId = keccak256(abi.encode("Charon",abi.encode(_chain,_depositId)));
         (_value,) = getDataBefore(_queryId,block.timestamp - 12 hours);
-        require(_value.length > 2);
     }
 
-    function getRootHashAndSupply(uint256 _timestamp) public view returns(bytes memory _value){
-        bytes32 _queryId = keccak256(abi.encode("CITInfo",abi.encode(_timestamp)));
+    function getRootHashAndSupply(uint256 _timestamp,address _address) public view returns(bytes memory _value){
+        bytes32 _queryId = keccak256(abi.encode("CrossChainBalance",abi.encode(1,_address,_timestamp)));
         (_value,) = getDataBefore(_queryId,block.timestamp - 12 hours);
-        require(_value.length > 2);
     }
 
 

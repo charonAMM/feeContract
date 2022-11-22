@@ -6,8 +6,8 @@ import "./interfaces/ICharon.sol";
 import "./helpers/MerkleTree.sol";
 import "./interfaces/IERC20.sol";
 /**
- @title MockMath
- @dev testing contract for the math contract contains amm math functions for the charon system
+ @title CFC
+ @dev charon fee contract for distributing fees and auction proceeds in the charon system
 **/
 contract CFC is MerkleTree{
 
@@ -19,23 +19,27 @@ contract CFC is MerkleTree{
         uint256 baseTokenRewardsPerToken;
     }
 
-    uint256 public toOracle;//amount in 100e18
-    uint256 public toLPs;
-    uint256 public toHolders;
-    uint256 public toUsers;
-    uint256 public toDistributeToken;
-    uint256 public toDistributeCHD;
-    uint256[] public feePeriods;
+    uint256 public toOracle;//percent (e.g. 100% = 100e18) going to the oracle provider on this chain
+    uint256 public toLPs;//percent (e.g. 100% = 100e18) going to LP's on this chain
+    uint256 public toHolders;//percent (e.g. 100% = 100e18) going to Holders of the governance token
+    uint256 public toUsers;//percent (e.g. 100% = 100e18) going to subsidize users (pay to mint CHD)
+    uint256 public toDistributeToken;//amount of baseToken reward to distribute in contract
+    uint256 public toDistributeCHD;//amount of chd in contract to distribute as rewards
+    uint256[] public feePeriods;//a list of block numbers corresponding to fee periods
     mapping(uint256 => FeePeriod) feePeriodByTimestamp; //gov token balance
-    ICharon public charon;
-    IOracle public oracle;
-    address public oraclePayment;
-    IERC20 token;
-    IERC20 chd;
+    ICharon public charon;//instance of charon on this chain
+    IOracle public oracle;//oracle for reading cross-chain Balances
+    address public oraclePayment;//payment address to fund all charon oracle queries
+    address public CIT;//CIT address (on mainnet ethereum)
+    IERC20 token;//ERC20 base token instance
+    IERC20 chd;//chd token instance
 
+    event FeeAdded(uint256 _amount, bool _isCHD);
     event FeeRoundEnded(uint256 _endDate, uint256 _baseTokenrRewardsPerToken, uint256 _chdRewardsPerToken);
+    event RewardClaimed(address _account,uint256 _baseTokenRewards,uint256 _chdRewards);
 
-    constructor(address _charon, address _oracle, address _oraclePayment, uint256 _toOracle, uint256 _toLPs, uint256 _toHolders, uint256 _toUsers){
+    constructor(address _cit,address _charon, address _oracle, address _oraclePayment, uint256 _toOracle, uint256 _toLPs, uint256 _toHolders, uint256 _toUsers){
+        CIT = _cit;
         charon = ICharon(_charon);
         oracle = IOracle(_oracle);
         oraclePayment = _oraclePayment;
@@ -55,7 +59,7 @@ contract CFC is MerkleTree{
     function endFeeRound() external{
         FeePeriod storage _f = feePeriodByTimestamp[feePeriods[feePeriods.length - 1]];
         require(block.timestamp > _f.endDate, "round should be over");
-        bytes memory _val = oracle.getRootHashAndSupply(_f.endDate);
+        bytes memory _val = oracle.getRootHashAndSupply(_f.endDate,CIT);
         (bytes32 _rootHash, uint256 _totalSupply) = abi.decode(_val,(bytes32,uint256));
         _f.rootHash = _rootHash;
         _f.totalSupply = _totalSupply;
@@ -91,6 +95,7 @@ contract CFC is MerkleTree{
             charon.addUserRewards(_toUsers,false);
             charon.addLPRewards(_toLPs, false);
         }
+        emit FeeAdded(_amount , _isCHD);
     }
 
     function claimRewards(uint256 _timestamp, address _account, uint256 _balance, bytes32[] calldata _hashes, bool[] calldata _right) external{
@@ -103,8 +108,15 @@ contract CFC is MerkleTree{
             require(_hashes[0] == _myHash || _hashes[1] == _myHash);
         }
         require(InTree(_rootHash, _hashes, _right));
-        require(token.transfer(_account, _f.baseTokenRewardsPerToken * _balance));
-        require(chd.transfer(_account, _f.chdRewardsPerToken * _balance));
+        uint256 _baseTokenRewards = _f.chdRewardsPerToken * _balance;
+        uint256 _chdRewards =  _f.chdRewardsPerToken * _balance;
+        if(_baseTokenRewards > 0){
+            require(token.transfer(_account, _baseTokenRewards));
+        }
+        if(_chdRewards > 0){
+            require(chd.transfer(_account, _chdRewards));  
+        }
+        emit RewardClaimed(_account,_baseTokenRewards,_chdRewards);
     }
 
 }
