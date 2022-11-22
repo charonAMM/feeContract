@@ -55,28 +55,6 @@ contract CFC is MerkleTree{
         chd = IERC20(_a);
     }
 
-    //to be called onceAMonth
-    function endFeeRound() external{
-        FeePeriod storage _f = feePeriodByTimestamp[feePeriods[feePeriods.length - 1]];
-        require(block.timestamp > _f.endDate, "round should be over");
-        bytes memory _val = oracle.getRootHashAndSupply(_f.endDate,CIT);
-        (bytes32 _rootHash, uint256 _totalSupply) = abi.decode(_val,(bytes32,uint256));
-        _f.rootHash = _rootHash;
-        _f.totalSupply = _totalSupply;
-        uint256 _endDate = block.timestamp + 30 days;
-        feePeriods.push(_endDate);
-        feePeriodByTimestamp[_endDate].endDate = _endDate;
-        _f.baseTokenRewardsPerToken = toDistributeToken * toHolders/100e18 / _totalSupply;
-        _f.chdRewardsPerToken = toDistributeCHD * toHolders/100e18 / _totalSupply;
-        //CHD transfers
-        uint256 _toOracle = toDistributeCHD * toOracle / 100e18;
-        chd.transfer(oraclePayment,_toOracle);
-        _toOracle = toDistributeToken * toOracle / 100e18;
-        token.transfer(oraclePayment, _toOracle);
-        toDistributeToken = 0;
-        toDistributeCHD = 0;
-        emit FeeRoundEnded(_f.endDate, _f.baseTokenRewardsPerToken, _f.chdRewardsPerToken);
-    }
 
     function addFees(uint256 _amount, bool _isCHD) external{
         //send LP and User rewards over now
@@ -117,6 +95,35 @@ contract CFC is MerkleTree{
             require(chd.transfer(_account, _chdRewards));  
         }
         emit RewardClaimed(_account,_baseTokenRewards,_chdRewards);
+    }
+
+        //to be called onceAMonth
+    function endFeeRound() external{
+        FeePeriod storage _f = feePeriodByTimestamp[feePeriods[feePeriods.length - 1]];
+        require(block.timestamp > _f.endDate + 12 hours, "round should be over and time for tellor");
+        bytes memory _val = oracle.getRootHashAndSupply(_f.endDate,CIT);
+        (bytes32 _rootHash, uint256 _totalSupply) = abi.decode(_val,(bytes32,uint256));
+        _f.rootHash = _rootHash;
+        _f.totalSupply = _totalSupply;
+        uint256 _endDate = block.timestamp + 30 days;
+        feePeriods.push(_endDate);
+        feePeriodByTimestamp[_endDate].endDate = _endDate;
+        _f.baseTokenRewardsPerToken = toDistributeToken * toHolders/100e18 / _totalSupply;
+        _f.chdRewardsPerToken = toDistributeCHD * toHolders/100e18 / _totalSupply;
+        //CHD transfers
+        uint256 _toOracle = toDistributeCHD * toOracle / 100e18;
+        chd.transfer(oraclePayment,_toOracle);
+        _toOracle = toDistributeToken * toOracle / 100e18;
+        token.transfer(oraclePayment, _toOracle);
+        toDistributeToken = 0;
+        toDistributeCHD = 0;
+        emit FeeRoundEnded(_f.endDate, _f.baseTokenRewardsPerToken, _f.chdRewardsPerToken);
+    }
+
+    //Getters
+
+    function getFeePeriodByTimestamp(uint256 _timestamp) external view returns(FeePeriod memory){
+        return feePeriodByTimestamp[_timestamp];
     }
 
 }
