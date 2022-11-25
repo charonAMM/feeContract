@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.0",
-    "usingtellor": "^5.0.1"
+    "chai": "^4.3.7",
+    "usingtellor": "4.0.7"
   }
 }

@@ -22,6 +22,6 @@ contract Oracle is UsingTellor{
      */
     function getRootHashAndSupply(uint256 _timestamp,address _address) public view returns(bytes memory _value){
         bytes32 _queryId = keccak256(abi.encode("CrossChainBalance",abi.encode(1,_address,_timestamp)));
-        (_value,) = getDataBefore(_queryId,block.timestamp - 12 hours);
+        (,_value,) = getDataBefore(_queryId,block.timestamp - 12 hours);
     }
 }

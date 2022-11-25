@@ -31,8 +31,8 @@ contract CFC is MerkleTree{
     IOracle public oracle;//oracle for reading cross-chain Balances
     address public oraclePayment;//payment address to fund all charon oracle queries
     address public CIT;//CIT address (on mainnet ethereum)
-    IERC20 token;//ERC20 base token instance
-    IERC20 chd;//chd token instance
+    IERC20 public token;//ERC20 base token instance
+    IERC20 public chd;//chd token instance
 
     event FeeAdded(uint256 _amount, bool _isCHD);
     event FeeRoundEnded(uint256 _endDate, uint256 _baseTokenrRewardsPerToken, uint256 _chdRewardsPerToken);
