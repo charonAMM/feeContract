@@ -51,8 +51,8 @@ contract CFC is MerkleTree{
         feePeriods.push(_endDate);
         feePeriodByTimestamp[_endDate].endDate = _endDate;
         (address _a, address _b) = charon.getTokens();
-        token = IERC20(_b);
         chd = IERC20(_a);
+        token = IERC20(_b);
     }
 
 
@@ -60,16 +60,17 @@ contract CFC is MerkleTree{
         //send LP and User rewards over now
         uint256 _toLPs = _amount * toLPs / 100e18;
         uint256 _toUsers = _amount * toUsers / 100e18;
-        _amount = _amount - _toLPs - _toUsers;
         if(_isCHD){
             require(chd.transferFrom(msg.sender,address(this), _amount), "should transfer amount");
-            toDistributeCHD += _amount;
+            chd.approve(address(charon),_toUsers + _toLPs);
+            toDistributeCHD += _amount - _toLPs - _toUsers;
             charon.addUserRewards(_toUsers,true);
             charon.addLPRewards(_toLPs, true);
         }
         else{
             require(token.transferFrom(msg.sender,address(this), _amount), "should transfer amount");
-            toDistributeToken += _amount;
+            token.approve(address(charon),_toUsers + _toLPs);
+            toDistributeToken += _amount - _toLPs - _toUsers;
             charon.addUserRewards(_toUsers,false);
             charon.addLPRewards(_toLPs, false);
         }
