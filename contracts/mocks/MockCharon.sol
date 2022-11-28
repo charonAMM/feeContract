@@ -7,8 +7,9 @@ pragma solidity 0.8.17;
 **/  
 contract MockCharon{
 
-    address public chd;
     address public baseToken;
+    address public chd;
+
 
     constructor(address _chd, address _baseToken){
         chd = _chd;
