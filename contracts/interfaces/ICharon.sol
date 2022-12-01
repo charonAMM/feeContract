@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 /**
- * @dev Interface of the ERC20 standard as defined in the EIP.
+ * @dev Interface of the charonAMM contracts used by the CFC
  */
 interface ICharon {
     function addLPRewards(uint256 _amount,bool _isCHD) external;

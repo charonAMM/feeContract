@@ -5,18 +5,20 @@ import "./interfaces/IOracle.sol";
 import "./interfaces/ICharon.sol";
 import "./helpers/MerkleTree.sol";
 import "./interfaces/IERC20.sol";
+
 /**
  @title CFC
  @dev charon fee contract for distributing fees and auction proceeds in the charon system
 **/
 contract CFC is MerkleTree{
 
+    /*Storage*/
     struct FeePeriod{
-        uint256 endDate;
-        bytes32 rootHash;
-        uint256 totalSupply;
-        uint256 chdRewardsPerToken;
-        uint256 baseTokenRewardsPerToken;
+        uint256 endDate;//end date of a given fee period (e.g. monthly fee payments)
+        bytes32 rootHash;//rootHash of CIT token balance tree to allow holder reward distribution
+        uint256 totalSupply;//total supply of CIT tokens for calculating payments to holders
+        uint256 chdRewardsPerToken;//chd tokens due to each holder of cit tokens
+        uint256 baseTokenRewardsPerToken;//base tokens due to each holder of cit tokens
     }
 
     uint256 public toOracle;//percent (e.g. 100% = 100e18) going to the oracle provider on this chain
@@ -34,10 +36,23 @@ contract CFC is MerkleTree{
     IERC20 public token;//ERC20 base token instance
     IERC20 public chd;//chd token instance
 
+    /*Events*/
     event FeeAdded(uint256 _amount, bool _isCHD);
     event FeeRoundEnded(uint256 _endDate, uint256 _baseTokenrRewardsPerToken, uint256 _chdRewardsPerToken);
     event RewardClaimed(address _account,uint256 _baseTokenRewards,uint256 _chdRewards);
 
+    /*Functions*/
+    /**
+     * @dev Constructor to initialize token
+     * @param _cit address of CIT token on mainnet
+     * @param _charon address of charon on this chain
+     * @param _oracle address of oracle for rootHash/supply
+     * @param _oraclePayment address of oracle payment contract / party
+     * @param _toOracle percentage (100% = 100e18) given to oraclePayment address
+     * @param _toLPs percentage (100% = 100e18) given to LPs
+     * @param _toHolders percentage (100% = 100e18) given to CIT token holders
+     * @param _toUsers percentage (100% = 100e18) given to chd minters (users)
+     */
     constructor(address _cit,address _charon, address _oracle, address _oraclePayment, uint256 _toOracle, uint256 _toLPs, uint256 _toHolders, uint256 _toUsers){
         CIT = _cit;
         charon = ICharon(_charon);
@@ -55,7 +70,11 @@ contract CFC is MerkleTree{
         token = IERC20(_b);
     }
 
-
+    /**
+     * @dev allows fees to be added to the CFC for distribution
+     * @param _amount amount of tokens being sent to contract
+     * @param _isCHD bool whether the token is CHD (base token if false)
+     */
     function addFees(uint256 _amount, bool _isCHD) external{
         //send LP and User rewards over now
         uint256 _toLPs = _amount * toLPs / 100e18;
@@ -77,6 +96,14 @@ contract CFC is MerkleTree{
         emit FeeAdded(_amount , _isCHD);
     }
 
+    /**
+     * @dev enables CIT token holders to claim rewards for a given fee period
+     * @param _timestamp uint256 input of fee period end date
+     * @param _account _address to pay out
+     * @param _balance uint256 amount of CIT tokens the _account holds
+     * @param _hashes bytes32 hashes in the balance to prove balance
+     * @param _right bool array of if the corresponding hash is rightmost
+     */
     function claimRewards(uint256 _timestamp, address _account, uint256 _balance, bytes32[] calldata _hashes, bool[] calldata _right) external{
         FeePeriod storage _f = feePeriodByTimestamp[_timestamp];
         bytes32 _rootHash = _f.rootHash;
@@ -86,7 +113,7 @@ contract CFC is MerkleTree{
         } else {
             require(_hashes[0] == _myHash || _hashes[1] == _myHash);
         }
-        require(InTree(_rootHash, _hashes, _right));
+        require(inTree(_rootHash, _hashes, _right));//checks if your balance/account is in the merkleTree
         uint256 _baseTokenRewards = _f.chdRewardsPerToken * _balance;
         uint256 _chdRewards =  _f.chdRewardsPerToken * _balance;
         if(_baseTokenRewards > 0){
@@ -98,7 +125,9 @@ contract CFC is MerkleTree{
         emit RewardClaimed(_account,_baseTokenRewards,_chdRewards);
     }
 
-        //to be called onceAMonth
+    /**
+     * @dev function called to end a given fee round and distribute payment to oracle and holders
+     */
     function endFeeRound() external{
         FeePeriod storage _f = feePeriodByTimestamp[feePeriods[feePeriods.length - 1]];
         require(block.timestamp > _f.endDate + 12 hours, "round should be over and time for tellor");
@@ -122,7 +151,11 @@ contract CFC is MerkleTree{
     }
 
     //Getters
-
+    /** 
+     * @dev getter to show fee period variables for given endDate
+     * @param _timestamp uint256 input of fee period end date
+     * @return returns the FeePeriod variables (endDate, rootHash, totalSupply, chdRewardsPerToken, baseRewardsPerToken)
+     */
     function getFeePeriodByTimestamp(uint256 _timestamp) external view returns(FeePeriod memory){
         return feePeriodByTimestamp[_timestamp];
     }
