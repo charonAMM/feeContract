@@ -1,4 +1,4 @@
-# charon fee contract
+## charon fee contract
 
 <b>Charon</b> is a privacy enabled cross-chain automated market maker (PECCAMM). This is the fee contract designed to distribute fees garnered from the charon system (amm trading as well as CIT auctions).  It takes both CHD and baseToken (different on each chain) fees and distributes them to four parties based on preset percentages.  These parties are the charon LP's, CIT holders, future chd minters (user rewards), and the oracle (for payment).
 
