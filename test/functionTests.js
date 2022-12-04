@@ -62,7 +62,59 @@ describe("fee contract - function tests", function() {
     });
     it("claimRewards()", async function() {
     });
+
+    FeePeriod storage _f = feePeriodByTimestamp[feePeriods[feePeriods.length - 1]];
+    require(block.timestamp > _f.endDate + 12 hours, "round should be over and time for tellor");
+    bytes memory _val = oracle.getRootHashAndSupply(_f.endDate,CIT);
+    (bytes32 _rootHash, uint256 _totalSupply) = abi.decode(_val,(bytes32,uint256));
+    _f.rootHash = _rootHash;
+    _f.totalSupply = _totalSupply;
+    uint256 _endDate = block.timestamp + 30 days;
+    feePeriods.push(_endDate);
+    feePeriodByTimestamp[_endDate].endDate = _endDate;
+    _f.baseTokenRewardsPerToken = toDistributeToken * toHolders/100e18 / _totalSupply;
+    _f.chdRewardsPerToken = toDistributeCHD * toHolders/100e18 / _totalSupply;
+    //CHD transfers
+    uint256 _toOracle = toDistributeCHD * toOracle / 100e18;
+    chd.transfer(oraclePayment,_toOracle);
+    _toOracle = toDistributeToken * toOracle / 100e18;
+    token.transfer(oraclePayment, _toOracle);
+    toDistributeToken = 0;
+    toDistributeCHD = 0;
+    emit FeeRoundEnded(_f.endDate, _f.baseTokenRewardsPerToken, _f.chdRewardsPerToken);
+}
+
+
+
     it("endFeeRound()", async function() {
+        await baseToken.mint(accounts[2].address, web3.utils.toWei("100"))
+        await baseToken.connect(accounts[2]).approve(cfc.address,web3.utils.toWei("100"))
+        await cfc.connect(accounts[2]).addFees(web3.utils.toWei("100"),false);
+        await chd.mint(accounts[2].address, web3.utils.toWei("100"))
+        await chd.connect(accounts[2]).approve(cfc.address,web3.utils.toWei("100"))
+        await cfc.connect(accounts[2]).addFees(web3.utils.toWei("100"),true);
+        await h.expectThrow(cfc.endFeeRound())//hasn't been time
+        await h.advanceTime(86400 * 31)
+        await h.expectThrow(cfc.endFeeRound())//no oracle push yet
+        //check all variables and actually run it
+        let _queryData = abiCoder.encode(
+            ['string', 'bytes'],
+            ['CrossChainBalance', abiCoder.encode(
+                ['uint256','address'],
+                [1,cit.address]
+            )]
+            );
+            _queryId = h.hash(_queryData)
+        let _value = "0x3b696cbaa12880500df23f90cf5599987649df71fe24e830cc21fbb95891dbe7"
+        await tellor.submitValue(_queryId, _value,0, _queryData);
+        await h.advanceTime(86400/2)
+        await cfc.endFeeRound()
+        assert(await cfc.toDistributeCHD() == 0, "should zero out toDistributeCHD")
+        assert(await cfc.toDistributeToken() == 0, "toDistributeToken should zero out")
+        let toOracleToken = await cfc.toDistributeToken() * web3.utils.toWei("10")
+        assert(await )
+
+
     });
     it("constructor()", async function() {
         console.log("oracle.sol")
@@ -70,11 +122,22 @@ describe("fee contract - function tests", function() {
 
     });
     it("getRootHashAndSupply()", async function() {
-
+        let _queryData = abiCoder.encode(
+            ['string', 'bytes'],
+            ['CrossChainBalance', abiCoder.encode(
+                ['uint256','address'],
+                [1,accounts[1].address]
+            )]
+            );
+            _queryId = h.hash(_queryData)
+        let _value = 100
+        await tellor.submitValue(_queryId, _value,0, _queryData);
+        await h.advanceTime(86400)
+        assert(await oracle.getRootHashAndSupply(1,1) == 100, "value should be correct")
     });
-    it("InTree()", async function() {
+    it("inTree()", async function() {
         console.log("Merkle Tree Tests")
     });
-    it("GetRootHash", async function() {
+    it("getRootHash", async function() {
     });
 });

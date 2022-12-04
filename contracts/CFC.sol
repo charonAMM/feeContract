@@ -142,9 +142,13 @@ contract CFC is MerkleTree{
         _f.chdRewardsPerToken = toDistributeCHD * toHolders/100e18 / _totalSupply;
         //CHD transfers
         uint256 _toOracle = toDistributeCHD * toOracle / 100e18;
-        chd.transfer(oraclePayment,_toOracle);
+        if(_toOracle > 0){
+            chd.transfer(oraclePayment,_toOracle);
+        }
         _toOracle = toDistributeToken * toOracle / 100e18;
-        token.transfer(oraclePayment, _toOracle);
+        if(_toOracle > 0){
+            token.transfer(oraclePayment, _toOracle);
+        }
         toDistributeToken = 0;
         toDistributeCHD = 0;
         emit FeeRoundEnded(_f.endDate, _f.baseTokenRewardsPerToken, _f.chdRewardsPerToken);
