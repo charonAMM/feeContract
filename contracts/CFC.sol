@@ -82,14 +82,14 @@ contract CFC is MerkleTree{
         if(_isCHD){
             require(chd.transferFrom(msg.sender,address(this), _amount), "should transfer amount");
             chd.approve(address(charon),_toUsers + _toLPs);
-            toDistributeCHD += _amount - _toLPs - _toUsers;
+            toDistributeCHD += _amount;
             charon.addUserRewards(_toUsers,true);
             charon.addLPRewards(_toLPs, true);
         }
         else{
             require(token.transferFrom(msg.sender,address(this), _amount), "should transfer amount");
             token.approve(address(charon),_toUsers + _toLPs);
-            toDistributeToken += _amount - _toLPs - _toUsers;
+            toDistributeToken += _amount;
             charon.addUserRewards(_toUsers,false);
             charon.addLPRewards(_toLPs, false);
         }
@@ -114,8 +114,8 @@ contract CFC is MerkleTree{
             require(_hashes[0] == _myHash || _hashes[1] == _myHash);
         }
         require(inTree(_rootHash, _hashes, _right));//checks if your balance/account is in the merkleTree
-        uint256 _baseTokenRewards = _f.chdRewardsPerToken * _balance;
-        uint256 _chdRewards =  _f.chdRewardsPerToken * _balance;
+        uint256 _baseTokenRewards = _f.chdRewardsPerToken * _balance * 1e18;
+        uint256 _chdRewards =  _f.chdRewardsPerToken * _balance * 1e18;
         if(_baseTokenRewards > 0){
             require(token.transfer(_account, _baseTokenRewards));
         }
@@ -138,16 +138,16 @@ contract CFC is MerkleTree{
         uint256 _endDate = block.timestamp + 30 days;
         feePeriods.push(_endDate);
         feePeriodByTimestamp[_endDate].endDate = _endDate;
-        _f.baseTokenRewardsPerToken = toDistributeToken * toHolders/100e18 / _totalSupply;
-        _f.chdRewardsPerToken = toDistributeCHD * toHolders/100e18 / _totalSupply;
+        _f.baseTokenRewardsPerToken = toDistributeToken * toHolders / (_totalSupply * 100);
+        _f.chdRewardsPerToken = toDistributeCHD * toHolders  / (_totalSupply * 100);
         //CHD transfers
         uint256 _toOracle = toDistributeCHD * toOracle / 100e18;
         if(_toOracle > 0){
-            chd.transfer(oraclePayment,_toOracle);
+            require(chd.transfer(oraclePayment,_toOracle));
         }
         _toOracle = toDistributeToken * toOracle / 100e18;
         if(_toOracle > 0){
-            token.transfer(oraclePayment, _toOracle);
+            require(token.transfer(oraclePayment, _toOracle));
         }
         toDistributeToken = 0;
         toDistributeCHD = 0;
