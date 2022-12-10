@@ -92,7 +92,7 @@ describe("fee contract - function tests", function() {
         assert(await baseToken.balanceOf(oraclePayment.address) == web3.utils.toWei("10"), "oracle payment should be correct" )
         assert(await chd.balanceOf(oraclePayment.address) == web3.utils.toWei("10"), "oracle payment chd should be correct")
         feePeriod = await cfc.feePeriods(1)
-        let _f1 = await cfc.getFeePeriodByTimestamp(_f);5000000000000000000000
+        let _f1 = await cfc.getFeePeriodByTimestamp(_f);
         assert(feePeriod > _f + 86400 * 30, "timestanp should be correct")
         assert(_f1.baseTokenRewardsPerToken == web3.utils.toWei("0.5"), "should be correct base rewards per token");
         assert(_f1.chdRewardsPerToken == web3.utils.toWei("0.5"), "should be correct chd rewards per token");
