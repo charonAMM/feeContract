@@ -97,6 +97,35 @@ describe("fee contract - function tests", function() {
         assert(_f1.baseTokenRewardsPerToken == web3.utils.toWei("0.5"), "should be correct base rewards per token");
         assert(_f1.chdRewardsPerToken == web3.utils.toWei("0.5"), "should be correct chd rewards per token");
     });
+    it("getFeePeriodByTimestamp()", async function() {
+        await cit.mint(accounts[2].address,web3.utils.toWei("100"))
+        await baseToken.mint(accounts[2].address, web3.utils.toWei("100"))
+        await baseToken.connect(accounts[2]).approve(cfc.address,web3.utils.toWei("100"))
+        await cfc.connect(accounts[2]).addFees(web3.utils.toWei("100"),false);
+        await chd.mint(accounts[2].address, web3.utils.toWei("100"))
+        await chd.connect(accounts[2]).approve(cfc.address,web3.utils.toWei("100"))
+        await cfc.connect(accounts[2]).addFees(web3.utils.toWei("100"),true);
+        await h.advanceTime(86400 * 31)
+        let _f= await cfc.feePeriods(0)
+        let _queryData = abiCoder.encode(
+            ['string', 'bytes'],
+            ['CrossChainBalance', abiCoder.encode(
+                ['uint256','address','uint256'],
+                [1,cit.address,_f]
+            )]
+            );
+        _queryId = h.hash(_queryData)
+        let _value = abiCoder.encode(['bytes32','uint256'],["0x3b696cbaa12880500df23f90cf5599987649df71fe24e830cc21fbb95891dbe7",web3.utils.toWei("100")])
+        await tellor.submitValue(_queryId, _value,0, _queryData);
+        await h.advanceTime(86400/2)
+        await cfc.endFeeRound()
+        let _f1 = await cfc.getFeePeriodByTimestamp(_f);
+        assert(_f1.baseTokenRewardsPerToken == web3.utils.toWei("0.5"), "should be correct base rewards per token");
+        assert(_f1.chdRewardsPerToken == web3.utils.toWei("0.5"), "should be correct chd rewards per token");
+        assert(_f1.endDate - _f == 0, "fee period end date should be correct")
+        assert(_f1.rootHash == "0x3b696cbaa12880500df23f90cf5599987649df71fe24e830cc21fbb95891dbe7", "rootHash should be correct")
+        assert(_f1.totalSupply == web3.utils.toWei("100"), "total supply should be correct")
+    });
     it("constructor()", async function() {
         console.log("oracle.sol")
         assert(await oracle.tellor() == tellor.address, "tellor address should be set properly")
