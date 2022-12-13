@@ -1,10 +1,9 @@
 const Web3 = require('web3')
-const Web3_2 = require('web3')
-const ERC20 = require('../artifacts/contracts/helpers/ERC20.sol/ERC20.json')
-const ERC20Snapshot = require('../artifacts/contracts/CCBalances.sol/CCBalances.json')
+const ERC20 = require('../artifacts/contracts/interfaces/IERC20.sol/IERC20.json')
+const ERC20Snapshot = require('../artifacts/contracts/CFC.sol/CFC.json')
 
 const MerkleTree = require("./MerkleTree")
-
+ 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -15,9 +14,7 @@ class Snapshot {
     this.target = address; // contract address
     this.blockNumber = blockNumber; // block number contract was deployed.
     this.web3 = web3;
-    this.web2 = web3;
-    this.contract2 = new this.web2.eth.Contract(ERC20.abi, this.target);
-    this.contract = new this.web3.eth.Contract(ERC20.abi, this.target);
+    this.contract = new web3.eth.Contract(ERC20.abi, this.target);
     this.MerkleTree = new MerkleTree(web3);
     this.data = {};
   }

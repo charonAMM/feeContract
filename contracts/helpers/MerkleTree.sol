@@ -62,7 +62,7 @@ contract MerkleTree {
       * @param _right bool array of if the corresponding hash is rightmost
       * @return A boolean wether `TargetHash` is part of the Merkle Tree with root hash `RootHash`. True if it is part of this tree, false if not. 
       */
-    function inTree(bytes32 _rootHash, bytes32[] memory _hashTree, bool[] memory _right) internal pure returns (bool) {
+    function _inTree(bytes32 _rootHash, bytes32[] memory _hashTree, bool[] memory _right) internal pure returns (bool) {
         bytes32 _cHash = _hashTree[0];
         for (uint256 _i=1;_i < _hashTree.length; _i++) {
             if (_right[_i]) {

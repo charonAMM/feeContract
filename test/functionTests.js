@@ -1,12 +1,15 @@
 const { expect,assert } = require("chai");
 const { ethers } = require("hardhat");
-const web3 = require('web3');
+const Web3 = require('web3')
+const web3 = new Web3(hre.network.provider)
 const { abi, bytecode } = require("usingtellor/artifacts/contracts/TellorPlayground.sol/TellorPlayground.json");
 const h = require("usingtellor/test/helpers/helpers.js");
+const MerkleTree = require("../src/MerkleTree");
 const abiCoder = new ethers.utils.AbiCoder()
+const Snapshot = require("../src/Snapshot")
 
 describe("fee contract - function tests", function() {
-    let cit,tellor,baseToken,chd,charon,oraclePayment,oracle;
+    let cit,tellor,baseToken,chd,charon,oraclePayment,oracle,Snap,mockTree;
     beforeEach(async function () {
         accounts = await ethers.getSigners();
         let fac = await ethers.getContractFactory("MockERC20");
@@ -29,6 +32,11 @@ describe("fee contract - function tests", function() {
         fac = await ethers.getContractFactory("CFC");
         cfc = await fac.deploy(cit.address,charon.address,oracle.address,oraclePayment.address,web3.utils.toWei("10"),web3.utils.toWei("20"),web3.utils.toWei("50"),web3.utils.toWei("20"));
         await cfc.deployed();
+        const initBlock = await hre.ethers.provider.getBlock("latest")
+        Snap = new Snapshot(cit.address, initBlock, web3)
+        fac = await ethers.getContractFactory("MockMerkleTree")
+        mockTree = await fac.deploy()
+        await mockTree.deployed()
     });
     it("constructor()", async function() {
         assert(await cfc.CIT() == cit.address, "cit should be set")
@@ -42,7 +50,6 @@ describe("fee contract - function tests", function() {
         let feePeriod = await cfc.feePeriods(0)
         assert(feePeriod > 0, "first fee period shoud be set")
         let thisPeriod = await cfc.getFeePeriodByTimestamp(feePeriod)
-        console.log(thisPeriod.endDate, feePeriod )
         assert(thisPeriod.endDate - feePeriod == 0, "end date should be set")
         assert(await cfc.token() == baseToken.address, "base token should be set")
         assert(await cfc.chd() ==chd.address, "chd should be set")
@@ -147,7 +154,38 @@ describe("fee contract - function tests", function() {
     });
     it("inTree()", async function() {
         console.log("Merkle Tree Tests")
+        //give addresses a balance
+        await cit.mint(accounts[1].address,web3.utils.toWei("100"))
+        await cit.mint(accounts[1].address,web3.utils.toWei("300"))
+        await cit.mint(accounts[2].address,web3.utils.toWei("100"))
+        await cit.mint(accounts[2].address,web3.utils.toWei("300"))
+        await cit.mint(accounts[3].address,web3.utils.toWei("100"))
+        await cit.mint(accounts[3].address,web3.utils.toWei("100"))
+        //Take snapshop
+        let blockN = await ethers.provider.getBlockNumber()
+        let root = await Snap.getRootHash(blockN)
+        let data = Snap.data[blockN]
+        for (key in data.sortedAccountList) {
+            let account = data.sortedAccountList[key]
+            let tx = await Snap.getClaimTX(blockN, account)
+            assert(await mockTree.inTree(root,tx.hashes, tx.hashRight))
+        }
     });
     it("getRootHash", async function() {
+            //give addresses a balance
+            await cit.mint(accounts[1].address,web3.utils.toWei("100"))
+            await cit.mint(accounts[1].address,web3.utils.toWei("100"))
+            await cit.mint(accounts[2].address,web3.utils.toWei("100"))
+            await cit.mint(accounts[2].address,web3.utils.toWei("100"))
+            await cit.mint(accounts[3].address,web3.utils.toWei("100"))
+            await cit.mint(accounts[3].address,web3.utils.toWei("100"))
+            //Take snapshop
+            let blockN = await ethers.provider.getBlockNumber()
+            let root = await Snap.getRootHash(blockN)
+            let data = Snap.data[blockN]
+            let balanceMap = await Snap.getBalances(data.sortedAccountList,blockN)
+            let hashList = await Snap.getHashList(data.sortedAccountList,balanceMap)
+            let _solRoot = await mockTree.getRootHash(hashList);
+            assert(root == _solRoot, "solidity root should match javascript root")
     });
 });
