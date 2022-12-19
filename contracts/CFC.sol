@@ -29,6 +29,7 @@ contract CFC is MerkleTree{
     uint256 public toDistributeCHD;//amount of chd in contract to distribute as rewards
     uint256[] public feePeriods;//a list of block numbers corresponding to fee periods
     mapping(uint256 => FeePeriod) feePeriodByTimestamp; //gov token balance
+    mapping(uint256 => mapping(address => bool)) didClaim;//shows if a user already claimed reward
     ICharon public charon;//instance of charon on this chain
     IOracle public oracle;//oracle for reading cross-chain Balances
     address public oraclePayment;//payment address to fund all charon oracle queries
@@ -106,16 +107,18 @@ contract CFC is MerkleTree{
      */
     function claimRewards(uint256 _timestamp, address _account, uint256 _balance, bytes32[] calldata _hashes, bool[] calldata _right) external{
         FeePeriod storage _f = feePeriodByTimestamp[_timestamp];
+        require(!didClaim[_timestamp][_account], "can only claim once");
+        didClaim[_timestamp][_account] = true;
         bytes32 _rootHash = _f.rootHash;
         bytes32 _myHash = keccak256(abi.encode(_account,_balance));
         if (_hashes.length == 1) {
             require(_hashes[0] == _myHash);
         } else {
-            require(_hashes[0] == _myHash || _hashes[1] == _myHash);
+            require(_hashes[0] == _myHash || _hashes[1] == _myHash || _hashes[2] == _myHash);
         }
         require(_inTree(_rootHash, _hashes, _right));//checks if your balance/account is in the merkleTree
-        uint256 _baseTokenRewards = _f.chdRewardsPerToken * _balance * 1e18;
-        uint256 _chdRewards =  _f.chdRewardsPerToken * _balance * 1e18;
+        uint256 _baseTokenRewards = _f.chdRewardsPerToken * _balance / 1e18;
+        uint256 _chdRewards =  _f.chdRewardsPerToken * _balance /1e18;
         if(_baseTokenRewards > 0){
             require(token.transfer(_account, _baseTokenRewards));
         }
@@ -164,4 +167,13 @@ contract CFC is MerkleTree{
         return feePeriodByTimestamp[_timestamp];
     }
 
+        /** 
+     * @dev getter to show whether a fee has been claimed
+     * @param _timestamp uint256 input of fee period end date
+     * @param _account account your inquiring about
+     * @return returns bool of if claimed
+     */
+    function getDidClaim(uint256 _timestamp, address _account) external view returns(bool){
+        return didClaim[_timestamp][_account];
+    }
 }

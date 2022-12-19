@@ -28,7 +28,7 @@ describe("fee contract - function tests", function() {
         fac = await ethers.getContractFactory("MockCharon")
         charon = await fac.deploy(chd.address,baseToken.address);
         await charon.deployed()
-        oraclePayment = accounts[2]
+        oraclePayment = accounts[6]
         fac = await ethers.getContractFactory("CFC");
         cfc = await fac.deploy(cit.address,charon.address,oracle.address,oraclePayment.address,web3.utils.toWei("10"),web3.utils.toWei("20"),web3.utils.toWei("50"),web3.utils.toWei("20"));
         await cfc.deployed();
@@ -68,6 +68,76 @@ describe("fee contract - function tests", function() {
         assert(await cfc.toDistributeCHD() == web3.utils.toWei("100"), "amount of token to distribute should be set")
     });
     it("claimRewards()", async function() {
+        //claim rewards, can't claim a bad reward
+        await cit.mint(accounts[1].address,web3.utils.toWei("100"))
+        await cit.mint(accounts[2].address,web3.utils.toWei("200"))
+        await cit.mint(accounts[3].address,web3.utils.toWei("300"))
+        await cit.mint(accounts[4].address,web3.utils.toWei("400"))
+        await baseToken.mint(accounts[2].address, web3.utils.toWei("1000"))
+        await baseToken.connect(accounts[2]).approve(cfc.address,web3.utils.toWei("1000"))
+        await cfc.connect(accounts[2]).addFees(web3.utils.toWei("1000"),false);
+        await chd.mint(accounts[2].address, web3.utils.toWei("1000"))
+        await chd.connect(accounts[2]).approve(cfc.address,web3.utils.toWei("1000"))
+        await cfc.connect(accounts[2]).addFees(web3.utils.toWei("1000"),true);
+        await h.advanceTime(86400 * 31)
+        let _f= await cfc.feePeriods(0)
+        let _queryData = abiCoder.encode(
+            ['string', 'bytes'],
+            ['CrossChainBalance', abiCoder.encode(
+                ['uint256','address','uint256'],
+                [1,cit.address,_f]
+            )]
+            );
+        _queryId = h.hash(_queryData)
+        let blockN = await ethers.provider.getBlockNumber()
+        let root = await Snap.getRootHash(blockN)
+        let ts = await cit.totalSupply()
+        let _value = abiCoder.encode(['bytes32','uint256'],[root,ts])
+        await tellor.submitValue(_queryId, _value,0, _queryData);
+        await h.advanceTime(86400/2)
+        await cfc.endFeeRound()
+        //Take snapshop
+        let data = Snap.data[blockN]
+        //bad tries
+        let i = 1
+        for (key in data.sortedAccountList) {
+            let account = data.sortedAccountList[key]
+            let tx = await Snap.getClaimTX(blockN, account)
+            assert(await cfc.getDidClaim(_f,accounts[i].address)== false, "didn't claim already")
+            await h.expectThrow(cfc.claimRewards(_f,account,web3.utils.toWei("1000")*i,tx.hashes, tx.hashRight))//bad balance
+            tx.hashes[0] = h.hash("badHash")
+            await h.expectThrow(cfc.claimRewards(_f,account,web3.utils.toWei("100")*i,tx.hashes, tx.hashRight))//bad tx.hashes
+            tx = await Snap.getClaimTX(blockN, account)
+            for(j=0;j < tx.hashRight.length; j++){
+                tx.hashRight[j] = true
+            }
+            await h.expectThrow(cfc.claimRewards(_f,account,web3.utils.toWei("100")*i,tx.hashes, tx.hashRight))//bad tx.hashRight
+            for(j=0;j < tx.hashRight.length; j++){
+                tx.hashRight[j] = false
+            }
+            await h.expectThrow(cfc.claimRewards(_f,account,web3.utils.toWei("100")*i,tx.hashes, tx.hashRight))//bad tx.hashRight
+            i++
+        }
+        i = 4
+        data = Snap.data[blockN]
+        for (key in data.sortedAccountList) {
+            let account = data.sortedAccountList[key]
+            for(j=0;j<5;j++){
+                if(account == accounts[j].address){
+                    i = j
+                }
+            }
+            let tx = await Snap.getClaimTX(blockN, account)
+            assert(await cfc.getDidClaim(_f,account)== false, "didn't claim already")
+            let myBal = i * 100
+            assert(data.balanceMap[account] - web3.utils.toWei(myBal.toString()) == 0, "balance should be correct")
+            await cfc.claimRewards(_f,account,data.balanceMap[account],tx.hashes, tx.hashRight)
+            assert(await cfc.getDidClaim(_f,account)== true, "did claim already")
+            await h.expectThrow(cfc.claimRewards(_f,account,web3.utils.toWei("100")*i,tx.hashes, tx.hashRight))
+            assert(await baseToken.balanceOf(account) - web3.utils.toWei("100")*i/2 == 0, "token balance should be claimed")
+            assert(await chd.balanceOf(account) - web3.utils.toWei("100")*i/2 == 0, "chd balance should be claimed")
+            i--
+        }
     });
     it("endFeeRound()", async function() {
         await h.expectThrow(cfc.feePeriods(1))
