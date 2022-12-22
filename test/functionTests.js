@@ -9,7 +9,7 @@ const abiCoder = new ethers.utils.AbiCoder()
 const Snapshot = require("../src/Snapshot")
 
 describe("fee contract - function tests", function() {
-    let cit,tellor,baseToken,chd,charon,oraclePayment,oracle,Snap,mockTree;
+    let cit,tellor,baseToken,chd,charon,oracle,Snap,mockTree;
     beforeEach(async function () {
         accounts = await ethers.getSigners();
         let fac = await ethers.getContractFactory("MockERC20");
@@ -28,9 +28,8 @@ describe("fee contract - function tests", function() {
         fac = await ethers.getContractFactory("MockCharon")
         charon = await fac.deploy(chd.address,baseToken.address);
         await charon.deployed()
-        oraclePayment = accounts[6]
         fac = await ethers.getContractFactory("CFC");
-        cfc = await fac.deploy(cit.address,charon.address,oracle.address,oraclePayment.address,web3.utils.toWei("10"),web3.utils.toWei("20"),web3.utils.toWei("50"),web3.utils.toWei("20"));
+        cfc = await fac.deploy(cit.address,charon.address,oracle.address,web3.utils.toWei("10"),web3.utils.toWei("20"),web3.utils.toWei("50"),web3.utils.toWei("20"));
         await cfc.deployed();
         const initBlock = await hre.ethers.provider.getBlock("latest")
         Snap = new Snapshot(cit.address, initBlock, web3)
@@ -42,7 +41,6 @@ describe("fee contract - function tests", function() {
         assert(await cfc.CIT() == cit.address, "cit should be set")
         assert(await cfc.charon() == charon.address, "charon should be set")
         assert(await cfc.oracle() == oracle.address, "tellor should be set")
-        assert(await cfc.oraclePayment() == oraclePayment.address, "oracle payment addrss should be set")
         assert(await cfc.toOracle() == web3.utils.toWei("10"), "toOracle should be set")
         assert(await cfc.toLPs() == web3.utils.toWei("20"), "toLPs should be set")
         assert(await cfc.toHolders() == web3.utils.toWei("50"), "toHolders should be set")
@@ -166,8 +164,6 @@ describe("fee contract - function tests", function() {
         await cfc.endFeeRound()
         assert(await cfc.toDistributeCHD() == 0, "should zero out toDistributeCHD")
         assert(await cfc.toDistributeToken() == 0, "toDistributeToken should zero out")
-        assert(await baseToken.balanceOf(oraclePayment.address) == web3.utils.toWei("10"), "oracle payment should be correct" )
-        assert(await chd.balanceOf(oraclePayment.address) == web3.utils.toWei("10"), "oracle payment chd should be correct")
         feePeriod = await cfc.feePeriods(1)
         let _f1 = await cfc.getFeePeriodByTimestamp(_f);
         assert(feePeriod > _f + 86400 * 30, "timestanp should be correct")

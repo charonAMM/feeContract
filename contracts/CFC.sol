@@ -27,12 +27,13 @@ contract CFC is MerkleTree{
     uint256 public toUsers;//percent (e.g. 100% = 100e18) going to subsidize users (pay to mint CHD)
     uint256 public toDistributeToken;//amount of baseToken reward to distribute in contract
     uint256 public toDistributeCHD;//amount of chd in contract to distribute as rewards
+    uint256 public totalDistributedToken; //amount of all distributions baseToken
+    uint256 public totalDistributedCHD;//amount of all distributions CHD
     uint256[] public feePeriods;//a list of block numbers corresponding to fee periods
     mapping(uint256 => FeePeriod) feePeriodByTimestamp; //gov token balance
     mapping(uint256 => mapping(address => bool)) didClaim;//shows if a user already claimed reward
     ICharon public charon;//instance of charon on this chain
     IOracle public oracle;//oracle for reading cross-chain Balances
-    address public oraclePayment;//payment address to fund all charon oracle queries
     address public CIT;//CIT address (on mainnet ethereum)
     IERC20 public token;//ERC20 base token instance
     IERC20 public chd;//chd token instance
@@ -48,17 +49,15 @@ contract CFC is MerkleTree{
      * @param _cit address of CIT token on mainnet
      * @param _charon address of charon on this chain
      * @param _oracle address of oracle for rootHash/supply
-     * @param _oraclePayment address of oracle payment contract / party
      * @param _toOracle percentage (100% = 100e18) given to oraclePayment address
      * @param _toLPs percentage (100% = 100e18) given to LPs
      * @param _toHolders percentage (100% = 100e18) given to CIT token holders
      * @param _toUsers percentage (100% = 100e18) given to chd minters (users)
      */
-    constructor(address _cit,address _charon, address _oracle, address _oraclePayment, uint256 _toOracle, uint256 _toLPs, uint256 _toHolders, uint256 _toUsers){
+    constructor(address _cit,address _charon, address _oracle, uint256 _toOracle, uint256 _toLPs, uint256 _toHolders, uint256 _toUsers){
         CIT = _cit;
         charon = ICharon(_charon);
         oracle = IOracle(_oracle);
-        oraclePayment = _oraclePayment;
         toOracle = _toOracle;
         toLPs = _toLPs;
         toHolders = _toHolders;
@@ -80,19 +79,18 @@ contract CFC is MerkleTree{
         //send LP and User rewards over now
         uint256 _toLPs = _amount * toLPs / 100e18;
         uint256 _toUsers = _amount * toUsers / 100e18;
+        uint256 _toOracle = _amount * toOracle / 100e18;
         if(_isCHD){
             require(chd.transferFrom(msg.sender,address(this), _amount), "should transfer amount");
-            chd.approve(address(charon),_toUsers + _toLPs);
+            chd.approve(address(charon),_toUsers + _toLPs + _toOracle);
             toDistributeCHD += _amount;
-            charon.addUserRewards(_toUsers,true);
-            charon.addLPRewards(_toLPs, true);
+            charon.addRewards(_toUsers,_toLPs,_toOracle,true);
         }
         else{
             require(token.transferFrom(msg.sender,address(this), _amount), "should transfer amount");
-            token.approve(address(charon),_toUsers + _toLPs);
+            token.approve(address(charon),_toUsers + _toLPs + _toOracle);
             toDistributeToken += _amount;
-            charon.addUserRewards(_toUsers,false);
-            charon.addLPRewards(_toLPs, false);
+            charon.addRewards(_toUsers,_toLPs,_toOracle,false);
         }
         emit FeeAdded(_amount , _isCHD);
     }
@@ -109,14 +107,13 @@ contract CFC is MerkleTree{
         FeePeriod storage _f = feePeriodByTimestamp[_timestamp];
         require(!didClaim[_timestamp][_account], "can only claim once");
         didClaim[_timestamp][_account] = true;
-        bytes32 _rootHash = _f.rootHash;
         bytes32 _myHash = keccak256(abi.encode(_account,_balance));
         if (_hashes.length == 1) {
             require(_hashes[0] == _myHash);
         } else {
             require(_hashes[0] == _myHash || _hashes[1] == _myHash || _hashes[2] == _myHash);
         }
-        require(_inTree(_rootHash, _hashes, _right));//checks if your balance/account is in the merkleTree
+        require(_inTree(_f.rootHash, _hashes, _right));//checks if your balance/account is in the merkleTree
         uint256 _baseTokenRewards = _f.chdRewardsPerToken * _balance / 1e18;
         uint256 _chdRewards =  _f.chdRewardsPerToken * _balance /1e18;
         if(_baseTokenRewards > 0){
@@ -143,15 +140,7 @@ contract CFC is MerkleTree{
         feePeriodByTimestamp[_endDate].endDate = _endDate;
         _f.baseTokenRewardsPerToken = toDistributeToken * toHolders / (_totalSupply * 100);
         _f.chdRewardsPerToken = toDistributeCHD * toHolders  / (_totalSupply * 100);
-        //CHD transfers
-        uint256 _toOracle = toDistributeCHD * toOracle / 100e18;
-        if(_toOracle > 0){
-            require(chd.transfer(oraclePayment,_toOracle));
-        }
-        _toOracle = toDistributeToken * toOracle / 100e18;
-        if(_toOracle > 0){
-            require(token.transfer(oraclePayment, _toOracle));
-        }
+        //transfers
         toDistributeToken = 0;
         toDistributeCHD = 0;
         emit FeeRoundEnded(_f.endDate, _f.baseTokenRewardsPerToken, _f.chdRewardsPerToken);

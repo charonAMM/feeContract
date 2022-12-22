@@ -16,21 +16,12 @@ contract MockCharon{
         baseToken = IERC20(_baseToken);
     }
 
-    function addLPRewards(uint256 _amount,bool _isCHD) external{
+    function addRewards(uint256 _toUsers, uint256 _toLPs, uint256 _toOracle,bool _isCHD) external{
       if(_isCHD){
-        require(chd.transferFrom(msg.sender,address(this),_amount));
+        require(chd.transferFrom(msg.sender,address(this),_toUsers + _toLPs + _toOracle));
       }
       else{
-        require(baseToken.transferFrom(msg.sender,address(this),_amount));
-      }
-    }
-
-    function addUserRewards(uint256 _amount, bool _isCHD) external{
-      if(_isCHD){
-         require(chd.transferFrom(msg.sender,address(this),_amount));
-      }
-      else{
-        require(baseToken.transferFrom(msg.sender,address(this),_amount));
+        require(baseToken.transferFrom(msg.sender,address(this),_toUsers + _toLPs + _toOracle));
       }
     }
 
