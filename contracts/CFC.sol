@@ -46,7 +46,6 @@ contract CFC is MerkleTree{
     /*Functions*/
     /**
      * @dev Constructor to initialize token
-     * @param _cit address of CIT token on mainnet
      * @param _charon address of charon on this chain
      * @param _oracle address of oracle for rootHash/supply
      * @param _toOracle percentage (100% = 100e18) given to oraclePayment address
@@ -54,8 +53,7 @@ contract CFC is MerkleTree{
      * @param _toHolders percentage (100% = 100e18) given to CIT token holders
      * @param _toUsers percentage (100% = 100e18) given to chd minters (users)
      */
-    constructor(address _cit,address _charon, address _oracle, uint256 _toOracle, uint256 _toLPs, uint256 _toHolders, uint256 _toUsers){
-        CIT = _cit;
+    constructor(address _charon, address _oracle, uint256 _toOracle, uint256 _toLPs, uint256 _toHolders, uint256 _toUsers){
         charon = ICharon(_charon);
         oracle = IOracle(_oracle);
         toOracle = _toOracle;
@@ -68,6 +66,11 @@ contract CFC is MerkleTree{
         (address _a, address _b) = charon.getTokens();
         chd = IERC20(_a);
         token = IERC20(_b);
+    }
+
+    function setCIT(address _cit) external{
+        require(CIT == address(0), "cit already set");
+        CIT = _cit;
     }
 
     /**

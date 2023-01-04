@@ -13,8 +13,6 @@ describe("fee contract - end to end tests", function() {
     beforeEach(async function () {
         accounts = await ethers.getSigners();
         let fac = await ethers.getContractFactory("MockERC20");
-        cit = await fac.deploy("charon incentive token", "cit");
-        await cit.deployed();
         baseToken = await fac.deploy("base token", "bt");
         await baseToken.deployed();
         chd = await fac.deploy("charon dollar", "chd");
@@ -29,8 +27,12 @@ describe("fee contract - end to end tests", function() {
         charon = await fac.deploy(chd.address,baseToken.address);
         await charon.deployed()
         fac = await ethers.getContractFactory("CFC");
-        cfc = await fac.deploy(cit.address,charon.address,oracle.address,web3.utils.toWei("10"),web3.utils.toWei("20"),web3.utils.toWei("50"),web3.utils.toWei("20"));
+        cfc = await fac.deploy(charon.address,oracle.address,web3.utils.toWei("10"),web3.utils.toWei("20"),web3.utils.toWei("50"),web3.utils.toWei("20"));
         await cfc.deployed();
+        fac = await ethers.getContractFactory("MockERC20");
+        cit = await fac.deploy("charon incentive token", "cit");
+        await cit.deployed();
+        await cfc.setCIT(cit.address)
         const initBlock = await hre.ethers.provider.getBlock("latest")
         Snap = new Snapshot(cit.address, initBlock, web3)
         fac = await ethers.getContractFactory("MockMerkleTree")
