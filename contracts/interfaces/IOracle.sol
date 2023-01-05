@@ -6,5 +6,5 @@ pragma solidity ^0.8.0;
  @dev oracle interface for the CFC contract
 **/
 interface IOracle {
-    function getRootHashAndSupply(uint256 _timestamp,address _addy) external returns(bytes memory);
+    function getRootHashAndSupply(uint256 _timestamp,uint256 _chainID, address _address) external view returns(bytes memory _value);
 }

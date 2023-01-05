@@ -32,7 +32,7 @@ describe("fee contract - function tests", function() {
         fac = await ethers.getContractFactory("MockERC20");
         cit = await fac.deploy("charon incentive token", "cit");
         await cit.deployed();
-        await cfc.setCIT(cit.address)
+        await cfc.setCIT(cit.address,1)
         const initBlock = await hre.ethers.provider.getBlock("latest")
         Snap = new Snapshot(cit.address, initBlock, web3)
         fac = await ethers.getContractFactory("MockMerkleTree")
@@ -47,6 +47,7 @@ describe("fee contract - function tests", function() {
         assert(await cfc.toLPs() == web3.utils.toWei("20"), "toLPs should be set")
         assert(await cfc.toHolders() == web3.utils.toWei("50"), "toHolders should be set")
         assert(await cfc.toUsers() == web3.utils.toWei("20"), "toUsers should be set")
+        assert(await cfc.CITChain() == 1, "chain ID should be set")
         let feePeriod = await cfc.feePeriods(0)
         assert(feePeriod > 0, "first fee period shoud be set")
         let thisPeriod = await cfc.getFeePeriodByTimestamp(feePeriod)
@@ -218,7 +219,7 @@ describe("fee contract - function tests", function() {
         let _value = 100
         await tellor.submitValue(_queryId, _value,0, _queryData);
         await h.advanceTime(86400)
-        assert(await oracle.getRootHashAndSupply(1,accounts[1].address) == 100, "value should be correct")
+        assert(await oracle.getRootHashAndSupply(1,1,accounts[1].address) == 100, "value should be correct")
     });
     it("inTree()", async function() {
         console.log("Merkle Tree Tests")

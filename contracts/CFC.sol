@@ -21,6 +21,7 @@ contract CFC is MerkleTree{
         uint256 baseTokenRewardsPerToken;//base tokens due to each holder of cit tokens
     }
 
+    uint256 public CITChain; //chain that CIT token is on
     uint256 public toOracle;//percent (e.g. 100% = 100e18) going to the oracle provider on this chain
     uint256 public toLPs;//percent (e.g. 100% = 100e18) going to LP's on this chain
     uint256 public toHolders;//percent (e.g. 100% = 100e18) going to Holders of the governance token
@@ -68,8 +69,9 @@ contract CFC is MerkleTree{
         token = IERC20(_b);
     }
 
-    function setCIT(address _cit) external{
+    function setCIT(address _cit, uint256 _chainID) external{
         require(CIT == address(0), "cit already set");
+        CITChain = _chainID;
         CIT = _cit;
     }
 
@@ -134,7 +136,7 @@ contract CFC is MerkleTree{
     function endFeeRound() external{
         FeePeriod storage _f = feePeriodByTimestamp[feePeriods[feePeriods.length - 1]];
         require(block.timestamp > _f.endDate + 12 hours, "round should be over and time for tellor");
-        bytes memory _val = oracle.getRootHashAndSupply(_f.endDate,CIT);
+        bytes memory _val = oracle.getRootHashAndSupply(_f.endDate,CITChain,CIT);
         (bytes32 _rootHash, uint256 _totalSupply) = abi.decode(_val,(bytes32,uint256));
         _f.rootHash = _rootHash;
         _f.totalSupply = _totalSupply;
