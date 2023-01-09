@@ -64,15 +64,15 @@ contract CFC is MerkleTree{
         uint256 _endDate = block.timestamp + 30 days;
         feePeriods.push(_endDate);
         feePeriodByTimestamp[_endDate].endDate = _endDate;
-        (address _a, address _b) = charon.getTokens();
-        chd = IERC20(_a);
+        (,address _b) = charon.getTokens();
         token = IERC20(_b);
     }
 
-    function setCIT(address _cit, uint256 _chainID) external{
+    function setCIT(address _cit, uint256 _chainID, address _chd) external{
         require(CIT == address(0), "cit already set");
         CITChain = _chainID;
         CIT = _cit;
+        chd = IERC20(_chd);
     }
 
     /**

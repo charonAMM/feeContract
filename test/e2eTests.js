@@ -32,7 +32,7 @@ describe("fee contract - end to end tests", function() {
         fac = await ethers.getContractFactory("MockERC20");
         cit = await fac.deploy("charon incentive token", "cit");
         await cit.deployed();
-        await cfc.setCIT(cit.address,1)
+        await cfc.setCIT(cit.address,1,chd.address)
         const initBlock = await hre.ethers.provider.getBlock("latest")
         Snap = new Snapshot(cit.address, initBlock, web3)
         fac = await ethers.getContractFactory("MockMerkleTree")
