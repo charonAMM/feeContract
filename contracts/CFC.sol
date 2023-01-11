@@ -119,7 +119,7 @@ contract CFC is MerkleTree{
             require(_hashes[0] == _myHash || _hashes[1] == _myHash || _hashes[2] == _myHash);
         }
         require(_inTree(_f.rootHash, _hashes, _right));//checks if your balance/account is in the merkleTree
-        uint256 _baseTokenRewards = _f.chdRewardsPerToken * _balance / 1e18;
+        uint256 _baseTokenRewards = _f.baseTokenRewardsPerToken * _balance / 1e18;
         uint256 _chdRewards =  _f.chdRewardsPerToken * _balance /1e18;
         if(_baseTokenRewards > 0){
             require(token.transfer(_account, _baseTokenRewards));
