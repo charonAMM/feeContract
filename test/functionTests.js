@@ -172,6 +172,9 @@ describe("fee contract - function tests", function() {
         assert(feePeriod > _f + 86400 * 30, "timestanp should be correct")
         assert(_f1.baseTokenRewardsPerToken == web3.utils.toWei("0.5"), "should be correct base rewards per token");
         assert(_f1.chdRewardsPerToken == web3.utils.toWei("0.5"), "should be correct chd rewards per token");
+        _f1 = await cfc.getFeePeriods();
+        assert(_f1.length == 2, "length should be correct")
+
     });
     it("getFeePeriodByTimestamp()", async function() {
         await cit.mint(accounts[2].address,web3.utils.toWei("100"))

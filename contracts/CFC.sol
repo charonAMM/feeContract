@@ -152,6 +152,14 @@ contract CFC is MerkleTree{
     }
 
     //Getters
+
+    /** 
+     * @dev getter to show all fee period end dates
+     * @return returns uint array of all fee period end dates
+     */
+    function getFeePeriods() external view returns(uint256[] memory){
+        return feePeriods;
+    }
     /** 
      * @dev getter to show fee period variables for given endDate
      * @param _timestamp uint256 input of fee period end date
