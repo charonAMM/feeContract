@@ -21,23 +21,24 @@ contract CFC is MerkleTree{
         uint256 baseTokenRewardsPerToken;//base tokens due to each holder of cit tokens
     }
 
+    address public CIT;//CIT address (on mainnet ethereum)
     uint256 public CITChain; //chain that CIT token is on
-    uint256 public toOracle;//percent (e.g. 100% = 100e18) going to the oracle provider on this chain
-    uint256 public toLPs;//percent (e.g. 100% = 100e18) going to LP's on this chain
-    uint256 public toHolders;//percent (e.g. 100% = 100e18) going to Holders of the governance token
-    uint256 public toUsers;//percent (e.g. 100% = 100e18) going to subsidize users (pay to mint CHD)
     uint256 public toDistributeToken;//amount of baseToken reward to distribute in contract
     uint256 public toDistributeCHD;//amount of chd in contract to distribute as rewards
+    uint256 public toHolders;//percent (e.g. 100% = 100e18) going to Holders of the governance token
+    uint256 public toLPs;//percent (e.g. 100% = 100e18) going to LP's on this chain
+    uint256 public toOracle;//percent (e.g. 100% = 100e18) going to the oracle provider on this chain
     uint256 public totalDistributedToken; //amount of all distributions baseToken
     uint256 public totalDistributedCHD;//amount of all distributions CHD
+    uint256 public toUsers;//percent (e.g. 100% = 100e18) going to subsidize users (pay to mint CHD)
     uint256[] public feePeriods;//a list of block numbers corresponding to fee periods
     mapping(uint256 => FeePeriod) feePeriodByTimestamp; //gov token balance
     mapping(uint256 => mapping(address => bool)) didClaim;//shows if a user already claimed reward
     ICharon public charon;//instance of charon on this chain
-    IOracle public oracle;//oracle for reading cross-chain Balances
-    address public CIT;//CIT address (on mainnet ethereum)
     IERC20 public token;//ERC20 base token instance
     IERC20 public chd;//chd token instance
+    IOracle public oracle;//oracle for reading cross-chain Balances
+
 
     /*Events*/
     event FeeAdded(uint256 _amount, bool _isCHD);
@@ -66,13 +67,6 @@ contract CFC is MerkleTree{
         feePeriodByTimestamp[_endDate].endDate = _endDate;
         (,address _b) = charon.getTokens();
         token = IERC20(_b);
-    }
-
-    function setCIT(address _cit, uint256 _chainID, address _chd) external{
-        require(CIT == address(0), "cit already set");
-        CITChain = _chainID;
-        CIT = _cit;
-        chd = IERC20(_chd);
     }
 
     /**
@@ -151,8 +145,14 @@ contract CFC is MerkleTree{
         emit FeeRoundEnded(_f.endDate, _f.baseTokenRewardsPerToken, _f.chdRewardsPerToken);
     }
 
-    //Getters
+    function setCIT(address _cit, uint256 _chainID, address _chd) external{
+        require(CIT == address(0), "cit already set");
+        CITChain = _chainID;
+        CIT = _cit;
+        chd = IERC20(_chd);
+    }
 
+    //Getters
     /** 
      * @dev getter to show all fee period end dates
      * @return returns uint array of all fee period end dates
