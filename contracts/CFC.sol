@@ -65,8 +65,7 @@ contract CFC is MerkleTree{
         uint256 _endDate = block.timestamp + 30 days;
         feePeriods.push(_endDate);
         feePeriodByTimestamp[_endDate].endDate = _endDate;
-        (,address _b) = charon.getTokens();
-        token = IERC20(_b);
+        token = charon.token();
     }
 
     /**

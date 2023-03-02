@@ -8,12 +8,12 @@ import "../interfaces/IERC20.sol";
 **/  
 contract MockCharon{
 
-    IERC20 public baseToken;
+    IERC20 public token;
     IERC20 public chd;
 
     constructor(address _chd, address _baseToken){
         chd = IERC20(_chd);
-        baseToken = IERC20(_baseToken);
+        token = IERC20(_baseToken);
     }
 
     function addRewards(uint256 _toUsers, uint256 _toLPs, uint256 _toOracle,bool _isCHD) external{
@@ -21,11 +21,7 @@ contract MockCharon{
         require(chd.transferFrom(msg.sender,address(this),_toUsers + _toLPs + _toOracle));
       }
       else{
-        require(baseToken.transferFrom(msg.sender,address(this),_toUsers + _toLPs + _toOracle));
+        require(token.transferFrom(msg.sender,address(this),_toUsers + _toLPs + _toOracle));
       }
-    }
-
-    function getTokens() external view returns(address,address){
-        return (address(chd),address(baseToken));
     }
 }
