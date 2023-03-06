@@ -32,7 +32,7 @@ describe("fee contract - function tests", function() {
         fac = await ethers.getContractFactory("MockERC20");
         cit = await fac.deploy("charon incentive token", "cit");
         await cit.deployed();
-        await cfc.setCIT(cit.address,1,chd.address)
+        await cfc.setCit(cit.address,1,chd.address)
         const initBlock = await hre.ethers.provider.getBlock("latest")
         Snap = new Snapshot(cit.address, initBlock, web3)
         fac = await ethers.getContractFactory("MockMerkleTree")
@@ -40,14 +40,15 @@ describe("fee contract - function tests", function() {
         await mockTree.deployed()
     });
     it("constructor()", async function() {
-        assert(await cfc.CIT() == cit.address, "cit should be set")
+        assert(await cfc.cit() == cit.address, "cit should be set")
         assert(await cfc.charon() == charon.address, "charon should be set")
         assert(await cfc.oracle() == oracle.address, "tellor should be set")
         assert(await cfc.toOracle() == web3.utils.toWei("10"), "toOracle should be set")
         assert(await cfc.toLPs() == web3.utils.toWei("20"), "toLPs should be set")
         assert(await cfc.toHolders() == web3.utils.toWei("50"), "toHolders should be set")
         assert(await cfc.toUsers() == web3.utils.toWei("20"), "toUsers should be set")
-        assert(await cfc.CITChain() == 1, "chain ID should be set")
+        assert(await cfc.citChain() == 1, "chain ID should be set")
+        await h.expectThrow(cfc.setCit(cit.address,1,chd.address))
         let feePeriod = await cfc.feePeriods(0)
         assert(feePeriod > 0, "first fee period shoud be set")
         let thisPeriod = await cfc.getFeePeriodByTimestamp(feePeriod)
@@ -133,6 +134,7 @@ describe("fee contract - function tests", function() {
             let myBal = i * 100
             assert(data.balanceMap[account] - web3.utils.toWei(myBal.toString()) == 0, "balance should be correct")
             await cfc.claimRewards(_f,account,data.balanceMap[account],tx.hashes, tx.hashRight)
+            await h.expectThrow(cfc.claimRewards(_f,account,data.balanceMap[account],tx.hashes, tx.hashRight))//can't claim twice
             assert(await cfc.getDidClaim(_f,account)== true, "did claim already")
             await h.expectThrow(cfc.claimRewards(_f,account,web3.utils.toWei("100")*i,tx.hashes, tx.hashRight))
             assert(await baseToken.balanceOf(account) - web3.utils.toWei("100")*i/2 == 0, "token balance should be claimed")
@@ -174,9 +176,8 @@ describe("fee contract - function tests", function() {
         assert(_f1.chdRewardsPerToken == web3.utils.toWei("0.5"), "should be correct chd rewards per token");
         _f1 = await cfc.getFeePeriods();
         assert(_f1.length == 2, "length should be correct")
-
     });
-    it("getFeePeriodByTimestamp()", async function() {
+    it("getFeePeriodByTimestamp() and getFeePeriods", async function() {
         await cit.mint(accounts[2].address,web3.utils.toWei("100"))
         await baseToken.mint(accounts[2].address, web3.utils.toWei("100"))
         await baseToken.connect(accounts[2]).approve(cfc.address,web3.utils.toWei("100"))
@@ -204,6 +205,8 @@ describe("fee contract - function tests", function() {
         assert(_f1.endDate - _f == 0, "fee period end date should be correct")
         assert(_f1.rootHash == "0x3b696cbaa12880500df23f90cf5599987649df71fe24e830cc21fbb95891dbe7", "rootHash should be correct")
         assert(_f1.totalSupply == web3.utils.toWei("100"), "total supply should be correct")
+        let vars = await cfc.getFeePeriods()
+        assert(vars[0] - _f == 0, "getFee periods should work")
     });
     it("constructor()", async function() {
         console.log("oracle.sol")

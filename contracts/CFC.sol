@@ -21,8 +21,8 @@ contract CFC is MerkleTree{
         uint256 baseTokenRewardsPerToken;//base tokens due to each holder of cit tokens
     }
 
-    address public CIT;//CIT address (on mainnet ethereum)
-    uint256 public CITChain; //chain that CIT token is on
+    address public cit;//CIT address (on mainnet ethereum)
+    uint256 public citChain; //chain that CIT token is on
     uint256 public toDistributeToken;//amount of baseToken reward to distribute in contract
     uint256 public toDistributeCHD;//amount of chd in contract to distribute as rewards
     uint256 public toHolders;//percent (e.g. 100% = 100e18) going to Holders of the governance token
@@ -32,8 +32,8 @@ contract CFC is MerkleTree{
     uint256 public totalDistributedCHD;//amount of all distributions CHD
     uint256 public toUsers;//percent (e.g. 100% = 100e18) going to subsidize users (pay to mint CHD)
     uint256[] public feePeriods;//a list of block numbers corresponding to fee periods
-    mapping(uint256 => FeePeriod) feePeriodByTimestamp; //gov token balance
-    mapping(uint256 => mapping(address => bool)) didClaim;//shows if a user already claimed reward
+    mapping(uint256 => FeePeriod) public feePeriodByTimestamp; //gov token balance
+    mapping(uint256 => mapping(address => bool)) public didClaim;//shows if a user already claimed reward
     ICharon public charon;//instance of charon on this chain
     IERC20 public token;//ERC20 base token instance
     IERC20 public chd;//chd token instance
@@ -129,7 +129,7 @@ contract CFC is MerkleTree{
     function endFeeRound() external{
         FeePeriod storage _f = feePeriodByTimestamp[feePeriods[feePeriods.length - 1]];
         require(block.timestamp > _f.endDate + 12 hours, "round should be over and time for tellor");
-        bytes memory _val = oracle.getRootHashAndSupply(_f.endDate,CITChain,CIT);
+        bytes memory _val = oracle.getRootHashAndSupply(_f.endDate,citChain,cit);
         (bytes32 _rootHash, uint256 _totalSupply) = abi.decode(_val,(bytes32,uint256));
         _f.rootHash = _rootHash;
         _f.totalSupply = _totalSupply;
@@ -144,10 +144,16 @@ contract CFC is MerkleTree{
         emit FeeRoundEnded(_f.endDate, _f.baseTokenRewardsPerToken, _f.chdRewardsPerToken);
     }
 
-    function setCIT(address _cit, uint256 _chainID, address _chd) external{
-        require(CIT == address(0), "cit already set");
-        CITChain = _chainID;
-        CIT = _cit;
+    /** 
+     * @dev getter to show all fee period end dates
+     * @param _cit address variable of the CIT token on mainchain
+     * @param _chainId chainID of the main chain
+     * @param _chd chd token address on this chain
+     */
+    function setCit(address _cit, uint256 _chainId, address _chd) external{
+        require(cit == address(0), "cit already set");
+        citChain = _chainId;
+        cit = _cit;
         chd = IERC20(_chd);
     }
 
