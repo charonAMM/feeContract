@@ -197,4 +197,140 @@ describe("fee contract - end to end tests", function() {
         assert(await baseToken.balanceOf(cfc.address)*1 < web3.utils.toWei(".001"), "all tokens should be gone")
         assert(await chd.balanceOf(cfc.address)*1 < web3.utils.toWei(".001"), "all tokens should be gone")
     });
+    it("Test lots of fees added and proper distributions", async function() {
+
+        //addFees
+        await cit.mint(accounts[1].address,web3.utils.toWei("500"))
+        await cit.mint(accounts[3].address,web3.utils.toWei("500"))
+        await baseToken.mint(accounts[2].address, web3.utils.toWei("1000"))
+        await baseToken.connect(accounts[2]).approve(cfc.address,web3.utils.toWei("1000"))
+        await cfc.connect(accounts[2]).addFees(web3.utils.toWei("1000"),false);
+        await chd.mint(accounts[2].address, web3.utils.toWei("1000"))
+        await chd.connect(accounts[2]).approve(cfc.address,web3.utils.toWei("1000"))
+        await cfc.connect(accounts[2]).addFees(web3.utils.toWei("1000"),true);
+        await h.advanceTime(86400 * 31)
+        let _f= await cfc.feePeriods(0)
+        let _queryData = abiCoder.encode(
+            ['string', 'bytes'],
+            ['CrossChainBalance', abiCoder.encode(
+                ['uint256','address','uint256'],
+                [1,cit.address,_f]
+            )]
+            );
+        _queryId = h.hash(_queryData)
+        let blockN = await ethers.provider.getBlockNumber()
+        let root = await Snap.getRootHash(blockN)
+        let ts = await cit.totalSupply()
+        let _value = abiCoder.encode(['bytes32','uint256'],[root,ts])
+        await tellor.submitValue(_queryId, _value,0, _queryData);
+        await h.advanceTime(86400/2)
+        await cfc.endFeeRound()
+        //claim half
+        let data = Snap.data[blockN]
+        let oldGuyTX;
+        data = Snap.data[blockN]
+        for (key in data.sortedAccountList) {
+            let account = data.sortedAccountList[key]
+            if(account == accounts[1].address){
+                let tx = await Snap.getClaimTX(blockN, account)
+                await cfc.claimRewards(_f,account,data.balanceMap[account],tx.hashes, tx.hashRight)
+            }
+            else if(account == accounts[3].address){
+                oldGuyTX = await Snap.getClaimTX(blockN, account)
+                //await cfc.claimRewards(_f,account,data.balanceMap[account],tx.hashes, tx.hashRight)
+            }
+        }
+        assert( await cfc.toDistributeToken() == 0, "should be no distribution")
+        assert( await cfc.toDistributeCHD() == 0, "should be no distribution")
+        await h.advanceTime(86400* 30)
+        _f= await cfc.feePeriods(1)
+        _queryData = abiCoder.encode(
+            ['string', 'bytes'],
+            ['CrossChainBalance', abiCoder.encode(
+                ['uint256','address','uint256'],
+                [1,cit.address,_f]
+            )]
+            );
+        _queryId = h.hash(_queryData)
+        blockN = await ethers.provider.getBlockNumber()
+        root = await Snap.getRootHash(blockN)
+        ts = await cit.totalSupply()
+        _value = abiCoder.encode(['bytes32','uint256'],[root,ts])
+        await tellor.submitValue(_queryId, _value,0, _queryData);
+        await h.advanceTime(86400/2)
+        await cfc.endFeeRound()
+        assert( await cfc.toDistributeToken() == 0, "should be no distribution")
+        assert( await cfc.toDistributeCHD() == 0, "should be no distribution")
+        await h.advanceTime(86400* 31)
+        _f= await cfc.feePeriods(2)
+        _queryData = abiCoder.encode(
+            ['string', 'bytes'],
+            ['CrossChainBalance', abiCoder.encode(
+                ['uint256','address','uint256'],
+                [1,cit.address,_f]
+            )]
+            );
+        _queryId = h.hash(_queryData)
+        blockN = await ethers.provider.getBlockNumber()
+        root = await Snap.getRootHash(blockN)
+        ts = await cit.totalSupply()
+        _value = abiCoder.encode(['bytes32','uint256'],[root,ts])
+        await tellor.submitValue(_queryId, _value,0, _queryData);
+        await h.advanceTime(86400/2)
+        await cfc.endFeeRound()
+        assert( await cfc.toDistributeToken() == 0, "should be no distribution")
+        assert( await cfc.toDistributeCHD() == 0, "should be no distribution")
+        await h.advanceTime(86400* 31)
+        _f= await cfc.feePeriods(3)
+        _queryData = abiCoder.encode(
+            ['string', 'bytes'],
+            ['CrossChainBalance', abiCoder.encode(
+                ['uint256','address','uint256'],
+                [1,cit.address,_f]
+            )]
+            );
+        _queryId = h.hash(_queryData)
+        blockN = await ethers.provider.getBlockNumber()
+        root = await Snap.getRootHash(blockN)
+        ts = await cit.totalSupply()
+        _value = abiCoder.encode(['bytes32','uint256'],[root,ts])
+        await tellor.submitValue(_queryId, _value,0, _queryData);
+        await h.advanceTime(86400/2)
+        await cfc.endFeeRound()
+        //send token away
+        await cit.connect(accounts[3]).transfer(accounts[1].address, web3.utils.toWei("500"))
+        assert( Math.abs(await cfc.toDistributeToken()*1 - 1*web3.utils.toWei("250")) == 0, "should be a distribution")
+        assert( Math.abs(await cfc.toDistributeCHD()*1 - 1*web3.utils.toWei("250")) == 0, "should be a distribution")
+        //now it's live!!
+        await h.advanceTime(86400* 31)
+        _f= await cfc.feePeriods(4)
+        _queryData = abiCoder.encode(
+            ['string', 'bytes'],
+            ['CrossChainBalance', abiCoder.encode(
+                ['uint256','address','uint256'],
+                [1,cit.address,_f]
+            )]
+            );
+        _queryId = h.hash(_queryData)
+        blockN = await ethers.provider.getBlockNumber()
+        root = await Snap.getRootHash(blockN)
+         ts = await cit.totalSupply()
+        _value = abiCoder.encode(['bytes32','uint256'],[root,ts])
+        await tellor.submitValue(_queryId, _value,0, _queryData);
+        await h.advanceTime(86400/2)
+        await cfc.endFeeRound()
+        //claim half
+        let newData = Snap.data[blockN]
+        newData = Snap.data[blockN]
+        for (key in newData.sortedAccountList) {
+            let account = newData.sortedAccountList[key]
+            if(account == accounts[1].address){
+                let tx = await Snap.getClaimTX(blockN, account)
+                await cfc.claimRewards(_f,account,newData.balanceMap[account],tx.hashes, tx.hashRight)
+            }
+        }
+        await h.expectThrow(cfc.claimRewards(_f,accounts[3].address,data.balanceMap[accounts[3].address],oldGuyTX.hashes, oldGuyTX.hashRight))
+        assert(await chd.balanceOf(accounts[1].address) == web3.utils.toWei("375"), "chd balance should be correct")
+        assert(await baseToken.balanceOf(accounts[1].address) == web3.utils.toWei("375"), "baseToken balance should be correct")
+    })
 });

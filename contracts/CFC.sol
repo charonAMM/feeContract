@@ -24,6 +24,7 @@ contract CFC is MerkleTree{
     }
 
     address public cit;//CIT address (on mainnet ethereum)
+    bool private _lock; //reentrant blocker
     uint256 public citChain; //chain that CIT token is on
     uint256 public toDistributeToken;//amount of baseToken reward to distribute in contract
     uint256 public toDistributeCHD;//amount of chd in contract to distribute as rewards
@@ -76,19 +77,19 @@ contract CFC is MerkleTree{
      * @param _amount amount of tokens being sent to contract
      * @param _isCHD bool whether the token is CHD (base token if false)
      */
-    function addFees(uint256 _amount, bool _isCHD) external{
+    function addFees(uint256 _amount, bool _isCHD) public{
         //send LP and User rewards over now
         uint256 _toLPs = _amount * toLPs / 100e18;
         uint256 _toUsers = _amount * toUsers / 100e18;
         uint256 _toOracle = _amount * toOracle / 100e18;
         if(_isCHD){
-            require(chd.transferFrom(msg.sender,address(this), _amount), "should transfer amount");
+            if(!_lock){require(chd.transferFrom(msg.sender,address(this), _amount), "should transfer amount");}
             chd.approve(address(charon),_toUsers + _toLPs + _toOracle);
             toDistributeCHD += _amount;
             charon.addRewards(_toUsers,_toLPs,_toOracle,true);
         }
         else{
-            require(token.transferFrom(msg.sender,address(this), _amount), "should transfer amount");
+            if(!_lock){require(token.transferFrom(msg.sender,address(this), _amount), "should transfer amount");}
             token.approve(address(charon),_toUsers + _toLPs + _toOracle);
             toDistributeToken += _amount;
             charon.addRewards(_toUsers,_toLPs,_toOracle,false);
@@ -146,15 +147,15 @@ contract CFC is MerkleTree{
         feePeriodByTimestamp[_endDate].endDate = _endDate;
         _f.baseTokenRewardsPerToken = toDistributeToken * toHolders / (_totalSupply * 100);
         _f.chdRewardsPerToken = toDistributeCHD * toHolders  / (_totalSupply * 100);
-        _f.feePeriodToDistributeCHD = toDistributeCHD * toHolders / 100;
-        _f.feePeriodToDistributeToken = toDistributeToken * toHolders / 100;
+        _f.feePeriodToDistributeCHD = toDistributeCHD * toHolders / 100e18;
+        _f.feePeriodToDistributeToken = toDistributeToken * toHolders / 100e18;
+        toDistributeToken = 0;
+        toDistributeCHD = 0;
         if(feePeriods.length >= 5){
-            toDistributeToken = feePeriodByTimestamp[feePeriods[feePeriods.length - 5]].feePeriodToDistributeToken;
-            toDistributeCHD = feePeriodByTimestamp[feePeriods[feePeriods.length - 5]].feePeriodToDistributeCHD;
-        }
-        else{
-            toDistributeToken = 0;
-            toDistributeCHD = 0;
+            _lock = true;
+            addFees(feePeriodByTimestamp[feePeriods[feePeriods.length - 5]].feePeriodToDistributeToken,false);
+            addFees(feePeriodByTimestamp[feePeriods[feePeriods.length - 5]].feePeriodToDistributeCHD,true);
+            _lock = false;
         }
         emit FeeRoundEnded(_f.endDate, _f.baseTokenRewardsPerToken, _f.chdRewardsPerToken);
     }
