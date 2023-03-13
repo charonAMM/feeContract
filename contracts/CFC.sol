@@ -19,6 +19,8 @@ contract CFC is MerkleTree{
         uint256 totalSupply;//total supply of CIT tokens for calculating payments to holders
         uint256 chdRewardsPerToken;//chd tokens due to each holder of cit tokens
         uint256 baseTokenRewardsPerToken;//base tokens due to each holder of cit tokens
+        uint256 feePeriodToDistributeCHD;//amount to distribute left in this round
+        uint256 feePeriodToDistributeToken;//amount to distribute left in this round
     }
 
     address public cit;//CIT address (on mainnet ethereum)
@@ -56,6 +58,7 @@ contract CFC is MerkleTree{
      * @param _toUsers percentage (100% = 100e18) given to chd minters (users)
      */
     constructor(address _charon, address _oracle, uint256 _toOracle, uint256 _toLPs, uint256 _toHolders, uint256 _toUsers){
+        require(_toOracle + _toLPs + _toHolders + _toUsers == 100 ether, "should be 100%");
         charon = ICharon(_charon);
         oracle = IOracle(_oracle);
         toOracle = _toOracle;
@@ -103,6 +106,9 @@ contract CFC is MerkleTree{
      */
     function claimRewards(uint256 _timestamp, address _account, uint256 _balance, bytes32[] calldata _hashes, bool[] calldata _right) external{
         FeePeriod storage _f = feePeriodByTimestamp[_timestamp];
+        if(feePeriods.length >= 5){
+            require(feePeriods[feePeriods.length - 5] < _timestamp, "too late too claim");
+        }
         require(!didClaim[_timestamp][_account], "can only claim once");
         didClaim[_timestamp][_account] = true;
         bytes32 _myHash = keccak256(abi.encode(_account,_balance));
@@ -114,6 +120,8 @@ contract CFC is MerkleTree{
         require(_inTree(_f.rootHash, _hashes, _right));//checks if your balance/account is in the merkleTree
         uint256 _baseTokenRewards = _f.baseTokenRewardsPerToken * _balance / 1e18;
         uint256 _chdRewards =  _f.chdRewardsPerToken * _balance /1e18;
+        _f.feePeriodToDistributeCHD -= _chdRewards;
+        _f.feePeriodToDistributeToken -= _baseTokenRewards;
         if(_baseTokenRewards > 0){
             require(token.transfer(_account, _baseTokenRewards));
         }
@@ -138,9 +146,16 @@ contract CFC is MerkleTree{
         feePeriodByTimestamp[_endDate].endDate = _endDate;
         _f.baseTokenRewardsPerToken = toDistributeToken * toHolders / (_totalSupply * 100);
         _f.chdRewardsPerToken = toDistributeCHD * toHolders  / (_totalSupply * 100);
-        //transfers
-        toDistributeToken = 0;
-        toDistributeCHD = 0;
+        _f.feePeriodToDistributeCHD = toDistributeCHD * toHolders / 100;
+        _f.feePeriodToDistributeToken = toDistributeToken * toHolders / 100;
+        if(feePeriods.length >= 5){
+            toDistributeToken = feePeriodByTimestamp[feePeriods[feePeriods.length - 5]].feePeriodToDistributeToken;
+            toDistributeCHD = feePeriodByTimestamp[feePeriods[feePeriods.length - 5]].feePeriodToDistributeCHD;
+        }
+        else{
+            toDistributeToken = 0;
+            toDistributeCHD = 0;
+        }
         emit FeeRoundEnded(_f.endDate, _f.baseTokenRewardsPerToken, _f.chdRewardsPerToken);
     }
 
