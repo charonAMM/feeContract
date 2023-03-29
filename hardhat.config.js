@@ -61,13 +61,13 @@ const config = {
       initialBaseFeePerGas: 5,
       //allowUnlimitedContractSize: true
     },
-    goerli: {
-           url: `${process.env.NODE_URL_GOERLI}`,
-           accounts: [process.env.PK],
-           gas: 4000000,
-           chainId:5,
-           gasPrice: 220000000000
-      } ,
+    // goerli: {
+    //        url: `${process.env.NODE_URL_GOERLI}`,
+    //        accounts: [process.env.PK],
+    //        gas: 4000000,
+    //        chainId:5,
+    //        gasPrice: 220000000000
+    //   } ,
     // mumbai: {
     //     url: `${process.env.NODE_URL_MUMBAI}`,
     //     accounts: [process.env.PK],
