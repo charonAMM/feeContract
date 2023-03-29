@@ -61,27 +61,27 @@ const config = {
       initialBaseFeePerGas: 5,
       //allowUnlimitedContractSize: true
     },
-    goerli: {
-           url: `${process.env.NODE_URL_GOERLI}`,
-           accounts: [process.env.PK],
-           gas: 4000000,
-           chainId:5,
-           gasPrice: 220000000000
-      } ,
-    mumbai: {
-        url: `${process.env.NODE_URL_MUMBAI}`,
-        accounts: [process.env.PK],
-        gas: 9000000,
-        chainId: 80001,
-        gasPrice: 170000000000
-    } ,
-    chiado: {
-        url: `${process.env.NODE_URL_CHIADO}`,
-        accounts: [process.env.PK],
-        gas: 9000000,
-        chainId: 10200,
-       gasPrice: 3000000000
-    } ,
+    // goerli: {
+    //        url: `${process.env.NODE_URL_GOERLI}`,
+    //        accounts: [process.env.PK],
+    //        gas: 4000000,
+    //        chainId:5,
+    //        gasPrice: 220000000000
+    //   } ,
+    // mumbai: {
+    //     url: `${process.env.NODE_URL_MUMBAI}`,
+    //     accounts: [process.env.PK],
+    //     gas: 9000000,
+    //     chainId: 80001,
+    //     gasPrice: 170000000000
+    // } ,
+    // chiado: {
+    //     url: `${process.env.NODE_URL_CHIADO}`,
+    //     accounts: [process.env.PK],
+    //     gas: 9000000,
+    //     chainId: 10200,
+    //    gasPrice: 3000000000
+    // } ,
   },
   mocha: {
     timeout: 600000000,
