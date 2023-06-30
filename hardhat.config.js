@@ -61,27 +61,43 @@ const config = {
       initialBaseFeePerGas: 5,
       //allowUnlimitedContractSize: true
     },
-    // goerli: {
-    //        url: `${process.env.NODE_URL_GOERLI}`,
-    //        accounts: [process.env.PK],
-    //        gas: 4000000,
-    //        chainId:5,
-    //        gasPrice: 220000000000
-    //   } ,
-    // mumbai: {
-    //     url: `${process.env.NODE_URL_MUMBAI}`,
-    //     accounts: [process.env.PK],
-    //     gas: 9000000,
-    //     chainId: 80001,
-    //     gasPrice: 170000000000
-    // } ,
-    // chiado: {
-    //     url: `${process.env.NODE_URL_CHIADO}`,
-    //     accounts: [process.env.PK],
-    //     gas: 9000000,
-    //     chainId: 10200,
-    //    gasPrice: 3000000000
-    // } ,
+    sepolia: {
+      url: `${process.env.NODE_URL_SEPOLIA}`,
+      accounts: [process.env.PK],
+      gas: 9000000,
+      chainId:11155111
+    } ,
+    mumbai: {
+      url: `${process.env.NODE_URL_MUMBAI}`,
+      accounts: [process.env.PK],
+      gas: 9000000,
+      chainId: 80001
+    } ,
+    chiado: {
+      url: `${process.env.NODE_URL_CHIADO}`,
+      accounts: [process.env.PK],
+      gas: 9000000,
+      chainId: 10200
+    } ,
+    optimism: {
+    url: `${process.env.NODE_URL_OPTIMISM}`,
+    accounts: [process.env.PK],
+    gas: 9000000,
+    chainId:10
+    } ,
+    polygon: {
+    url: `${process.env.NODE_URL_POLYGON}`,
+    accounts: [process.env.PK],
+    gas: 9000000,
+    gasPrice: 175000000000,
+    chainId: 137
+    } ,
+    gnosis: {
+    url: `${process.env.NODE_URL_GNOSIS}`,
+    accounts: [process.env.PK],
+    gas: 9000000,
+    chainId: 100
+    } ,
   },
   mocha: {
     timeout: 600000000,

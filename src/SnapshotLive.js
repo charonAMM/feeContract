@@ -1,5 +1,3 @@
-const Web3 = require('web3')
-const Web3_2 = require('web3')
 const ERC20 = require('../artifacts/contracts/interfaces/IERC20.sol/IERC20.json')
 const ERC20Snapshot = require('../artifacts/contracts/CFC.sol/CFC.json')
 
@@ -11,14 +9,11 @@ function sleep(ms) {
 
 class SnapshotLive {
 
-  constructor(address, blockNumber, web3, node2){
+  constructor(address, blockNumber, web3){
     this.target = address; // contract address
     this.blockNumber = blockNumber; // block number contract was deployed.
     this.web3 = web3;
-    this.web2 = web3;
-    this.contract2 = new this.web2.eth.Contract(ERC20.abi, this.target);
     this.contract = new this.web3.eth.Contract(ERC20.abi, this.target);
-    this.node2 = node2;
     this.MerkleTree = new MerkleTree(web3);
     this.data = {};
   }
@@ -30,10 +25,10 @@ class SnapshotLive {
   async getAccountList(blockNumber){
     let accountMap = {};
     let balanceMap = {}
-    let y = 0;
-    let _shift = 25000
+    let y = 27976000; //start on gno 27976000
+    let _shift = 50000
     let _toBlock;
-    let acc
+    console.log("here2")
     while(y < blockNumber){
       _toBlock = y + _shift
       if(_toBlock > blockNumber){
@@ -58,12 +53,17 @@ class SnapshotLive {
       // set provider for all later instances to use
     //await this.contract2.setProvider(this.node2);
     for (key in accountMap){
+      await sleep(1000)
+      console.log(key, blockNumber)
       let bal = await this.contract.methods.balanceOf(key).call({}, blockNumber);
       if(bal > 0){
         balanceMap[key] = bal;
         accountList.push(key);
+        console.log("my account!!",key)
+        console.log("myBalance", bal)
       }
-    }     
+    } 
+    console.log("Number of Accounts: ", accountList.length)    
     return {accountList, balanceMap};
   }
 
