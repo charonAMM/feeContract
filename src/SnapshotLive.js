@@ -25,7 +25,7 @@ class SnapshotLive {
   async getAccountList(blockNumber){
     let accountMap = {};
     let balanceMap = {}
-    let y = 27976000; //start on gno 27976000
+    let y = 3500000; //start on gno 27976000
     let _shift = 50000
     let _toBlock;
     console.log("here2")

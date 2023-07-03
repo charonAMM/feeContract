@@ -12,10 +12,11 @@ const SnapshotLive= require("../src/SnapshotLive")
 require("dotenv").config();
 //npx hardhat run scripts/generateCCB.js --network sepolia
 
-//const token = "0x23a363e59d915216a4a3fa751ade8dEAEa7A66BD"//sep
-const token = "0xA236e0a9fCCBd3BFcbb9Ed8aB4EEFEEBcbE58458"//gnosis
-const myAddress = "0xf288EB2539BfE8883747fa4513F1613e98cfc33B"
-const blockNumber = 28683890
+const token = "0x23a363e59d915216a4a3fa751ade8dEAEa7A66BD"//sep
+const myAddress = "0xACE235Da5C594C3DdE316393Ad59a6f55F930be8"
+//const token = "0xA236e0a9fCCBd3BFcbb9Ed8aB4EEFEEBcbE58458"//gnosis
+// const myAddress = "0xf288EB2539BfE8883747fa4513F1613e98cfc33B"
+const blockNumber = 3615835
 
 async function getRootHashandTS() {
 
